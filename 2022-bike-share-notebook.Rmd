@@ -1,0 +1,230 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+Author: Tanisha Mishra
+Last updated: 9/01/2023
+---
+
+# Case study: How does a Bike-Share Company navigate speedy success?
+
+In 2016, Cyclistic launched a successful bike-share offering. Since then, the program has grown to a fleet of 5,824 bicycles that are geotracked and locked into a network of 692 stations across Chicago. The bikes can be unlocked from one station and returned to any other station in the system anytime. Until now, Cyclistic's marketing strategy relied on building general awareness and appealing to broad consumer segments.One approach that helped make these things possible was the flexibility of its pricing plans: single-ride passes, full-day passes, and annual memberships. Customers who purchase single-ride or full-day passes are referred to as casual riders. Customers who purchase annual memberships are Cyclistic members.
+
+## Big Picture: How to increase annual members?
+
+Three questions will guide the future marketing program: 1. How do annual members and casual riders use Cyclistic bikes differently? 2. Why would casual riders buy Cyclistic annual memberships? 3. How can Cyclistic use digital media to influence casual riders to become members?
+
+## Our business objective: How do annual members and casual riders use Cyclistic bikes differently?
+
+### ***Ask***
+
+### Stakeholders:
+
+-   **Cyclistic**: A bike-share program that features more than 5,800 bicycles and 600 docking stations. Cyclistic sets itself apart by also offering reclining bikes, hand tricycles, and cargo bikes, making bike-share more inclusive to people with disabilities and riders who can't use a standard two-wheeled bike. The majority of riders opt for traditional bikes; about 8% of riders use the assistive options. Cyclistic users are more likely to ride for leisure, but about 30% use them to commute to work each day.
+-   **Lily Moreno**: The director of marketing and your manager. Moreno is responsible for the development of campaigns and initiatives to promote the bike-share program. These may include email, social media, and other channels.
+-   **Cyclistic marketing analytics team**: A team of data analysts who are responsible for collecting, analyzing, and reporting data that helps guide Cyclistic marketing strategy. You joined this team six months ago and have been busy learning about Cyclistic's mission and business goals --- as well as how you, as a junior data analyst, can help Cyclistic achieve them.
+-   **Cyclistic executive team**: The notoriously detail-oriented executive team will decide whether to approve the recommended marketing program.
+
+### ***Prepare***
+
+### About data
+
+I have taken trip data from the company database for the previous 12 months (of **2022**) [link](https://divvy-tripdata.s3.amazonaws.com/index.html) and analyzed it to find out the number of rides and average duration of it per day of week by casual and annual members.
+
+Data collected by third-party and a has been made available by Motivate International Inc. under this [license](https://ride.divvybikes.com/data-license-agreement).
+
+-   Reliability: High, the data set has large sample size with more than 6 million unique entries.
+-   Original: Low, data is provided by third party- Motivate International Inc.
+-   Comprehensive: High, data set has more than enough information to meet our business objective.
+-   Current: High, data is of the year 2022
+-   Cited: Low, data comes from third party.
+
+### Storing data
+
+1.  stored the copy of csv files for each month in separate subfolder '2022-divvy-csv' inside folder 'data'
+2.  changed the name of '202209-divvy-publictripdata' to '202209-divvy-tripdata' for easy access
+
+### Privacy
+
+The data was collected from the customers directly but customer anonymity is ensured. No names or personal information has been used without consent and/or outside licensed agreement.
+
+### **Process**:
+
+```{r Loading Packages}
+
+library(tidyverse)
+
+library(lubridate)
+
+library(ggplot2)
+```
+
+Since, the files were downloaded to local system, we change the directory and store each month data.
+
+```{r setting directory and loading csv files}
+setwd("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv")
+
+jan_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202201-divvy-tripdata.csv")
+feb_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202202-divvy-tripdata.csv")
+mar_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202203-divvy-tripdata.csv")
+apr_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202204-divvy-tripdata.csv")
+may_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202205-divvy-tripdata.csv")
+jun_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202206-divvy-tripdata.csv")
+jul_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202207-divvy-tripdata.csv")
+aug_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202208-divvy-tripdata.csv")
+sep_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202209-divvy-tripdata.csv")
+oct_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202210-divvy-tripdata.csv")
+nov_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202211-divvy-tripdata.csv")
+dec_csv<- read_csv("C:\\Users\\ragha\\Desktop\\data\\2022-divvy-csv\\202212-divvy-tripdata.csv")
+```
+
+We now combine multiple tables into one single table and name it 'all_trips'. We use View to see the entire table in different tab and glimpse to see a summary of it.
+
+```{r Combining data}
+all_trips<- bind_rows(jan_csv, feb_csv, mar_csv, apr_csv, may_csv, may_csv, jun_csv, jul_csv, aug_csv, sep_csv, oct_csv, nov_csv, dec_csv)
+
+View(all_trips)
+
+glimpse(all_trips)
+```
+
+We count the number of casual riders and annual members here using group_by and count() function.
+
+```{r count of types of riders}
+casual_riders<- all_trips %>% 
+  group_by(member_casual)%>%
+  count()
+
+casual_riders
+```
+
+We decided to create separate columns for day, month, year and day of week from the date column (started_at) in 'all_trips'
+
+```{r adding columns}
+all_trips$date<- as.Date(all_trips$started_at)
+all_trips$month<- format(as.Date(all_trips$date), "%m") 
+all_trips$day<- format(as.Date(all_trips$date), "%d")
+all_trips$year<- format(as.Date(all_trips$date),"%Y")
+all_trips$day_of_week<- format(as.Date(all_trips$date),"%A")
+```
+
+We calculate the duration of ride for each customer.
+
+```{r ride duration}
+all_trips$ride_length<- format(difftime(all_trips$ended_at, all_trips$started_at))
+View(all_trips)
+```
+
+To perform statistical operations, our ride_length should be numeric but it is character and also has 'secs' written with it. So we will remove that and convert it.
+
+```{r converting to numeric}
+all_trips$ride_length<- gsub("secs","",all_trips$ride_length)
+all_trips$ride_length<- as.numeric(all_trips$ride_length)
+is.numeric(all_trips$ride_length)
+```
+
+We create another table now 'all_trips_v2' which is going to be version 2 of our original data. We have a lot of fields in our original data where ride_length came out to be zero so we are going to remove those in this version. We are also going to make sure that if there are any cases of 'testing' included in our original dataset, they don't follow in our new one.
+
+```{r creating v2}
+all_trips_v2 <- all_trips[!(all_trips$start_station_name== "HQ QR" | all_trips$ride_length<=0),]
+
+View(all_trips_v2)
+```
+
+The summary function will give us statistical data about each column. We can easily deduce the minimum, maximum, median and mean ride_length here.
+
+```{r summary}
+summary(all_trips_v2)
+```
+
+### ***Analyze***
+
+We use the aggregate() function to figure out the statistical data by category of customers- casual or member
+
+```{r member vs casual}
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = mean)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = median)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = max)
+aggregate(all_trips_v2$ride_length~all_trips_v2$member_casual, FUN = min)
+```
+
+We are now calculating the average ride length for both type of customers per day of week
+
+```{r day_of_week}
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+```
+
+We notice that in the result we get the days are not organized so we fix this.
+
+```{r ordering weekdays}
+all_trips_v2$day_of_week<- ordered(all_trips_v2$day_of_week, levels=c("Sunday", "Monday", "Tuesday","Wednesday","Thursday","Friday","Saturday"))
+```
+
+We run our code again then.
+
+```{r day_of_week modified}
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+```
+
+We now analyze and view how the number of rides and average duration of trips vary from members to casuals by every day of week with a tibble.
+
+```{r analysis}
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>%  
+  summarise(number_of_rides = n(),average_duration = sprintf("%0.3f", mean(ride_length))) %>% 		
+  arrange(member_casual, weekday)		
+```
+
+### ***Share***
+
+Now that we can draw some conclusions from the numeric data, we convert it into simple and understandable visualizations for our stakeholders.
+
+```{r number of rides per week}
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) + 
+  geom_col(position = "dodge")+ labs(title = "members vs casual: number of rides per day of week", caption = "data source: trip data 2022 collected by third party- Motivate International Inc.")
+```
+
+```{r average_duration }
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n(),average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+ labs(title = "members vs casual: average duration of trip per day of week", caption = "data source: trip data 2022 collected by third party- Motivate International Inc.")
+```
+
+### ***Act***
+
+### Conclusions:
+
+**GRAPH 1**
+
+1.  Casual customers are significantly low on weekdays as compared to the weekends.
+2.  Sunday is when we get a high number of casual customers.
+3.  While the number of annual members remain mostly stable throughout the week, the casual customers see a hike on weekends.
+4.  Member riders are highest on Tuesday, Wednesday and Thursday but lowest on weekends.
+
+**GRAPH 2**
+
+1.  Casual riders take much longer trips than annual members with the longest duration on Sunday, followed by Saturday.
+2.  Members have a steady average trip duration with slight increase on weekends.
+
+**Questions to focus on further analysis:**
+
+1.  Why do members ride less than casuals, even when there are more members than casuals (3,700,128)?
+2.  Why are casual members not preferring annual membership even when they enjoy long trip durations?
+3.  Why do members take more bikes from Tuesday to Friday?
+4.  Why members take short trips on average on daily basis?
+
+**Drawback:**
+
+Some members were not categorized in either category and we were not sure if excluding that data would be a good idea.
